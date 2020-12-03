@@ -1,6 +1,6 @@
 import numpy as np
 
-# grid is a 2d array, start and target are both tuples
+# grid is a 2d array, start and end are both tuples
 def lee_planning_path(grid, start, end):
     status = np.zeros((len(grid), len(grid[0])))
     visited = np.zeros((len(grid), len(grid[0])))
