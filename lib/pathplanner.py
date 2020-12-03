@@ -80,9 +80,9 @@ import time
 #     return waypoints
 
 def lee_planning_path(grid, start, end):
-    status = np.zeros((len(a), len(grid[0])))
-    can_visit = np.ones((len(a), len(grid[0])))
-    visited = np.zeros((len(a), len(grid[0])))
+    status = np.zeros((len(grid), len(grid[0])))
+    can_visit = np.ones((len(grid), len(grid[0])))
+    visited = np.zeros((len(grid), len(grid[0])))
 
     reached = False
     status[grid < 10] = -1 #set obstacles to -1
