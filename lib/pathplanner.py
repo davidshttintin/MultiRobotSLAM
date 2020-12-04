@@ -29,6 +29,7 @@ def lee_planning_path(grid, start, end):
 
         rollleft = np.roll(current_step_map, -1, axis = 1)
         rollleft[:, -1] = False
+
         rollleft = np.logical_and(rollleft, can_visit)
 
         this_step = np.logical_or(np.logical_or(rollup, rolldown), np.logical_or(rollright, rollleft))
@@ -43,10 +44,11 @@ def lee_planning_path(grid, start, end):
         coordinates = np.transpose(np.nonzero(this_step))
         reached = list(end) in coordinates.tolist()
         
-        
-    if status[end[0]][end[1]] == 0 and start != end:
+    
+    if status[end[0]][end[1]] == 0:
         print("not accessible")
         return [] #end is not accessible
+    print(status)
     path = []
     path.append(end)
     while True:
