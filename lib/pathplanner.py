@@ -80,9 +80,9 @@ import time
 #     return waypoints
 
 def lee_planning_path(grid, start, end):
-    status = np.zeros((len(grid), len(grid[0])))
-    can_visit = np.ones((len(grid), len(grid[0])))
-    visited = np.zeros((len(grid), len(grid[0])))
+    status = np.zeros((len(a), len(grid[0])))
+    can_visit = np.ones((len(a), len(grid[0])))
+    visited = np.zeros((len(a), len(grid[0])))
 
     reached = False
     status[grid < 10] = -1 #set obstacles to -1
@@ -125,39 +125,91 @@ def lee_planning_path(grid, start, end):
     if status[end[0]][end[1]] == 0 and start != end:
         print("not accessible")
         return [] #end is not accessible
-    path = []
-    path.append(end)
-    while True:
-        i, j = path[0]
-        if (i, j) == start:
-            break
-        min_val = 999
-        min_xy = (0, 0)
-        left = (i-1) >= 0 and status[i-1][j] != -1 and visited[i-1][j] == 1
-        right = (i+1) < len(grid) and status[i+1][j] != -1 and visited[i+1][j] == 1
-        top  = (j-1) >= 0 and status[i][j-1] != -1 and visited[i][j-1] == 1
-        bottom = (j+1) < len(grid[0]) and status[i][j+1] != -1 and visited[i][j+1] == 1
-        if left:
-            if status[i-1][j] < min_val:
-                min_val = status[i-1][j]
-                min_xy = (i-1, j)
-        if right:
-            if status[i+1][j] < min_val:
-                min_val = status[i+1][j]
-                min_xy = (i+1, j)
-        if top:
-            if status[i][j-1] < min_val:
-                min_val = status[i][j-1]
-                min_xy = (i, j-1)
-        if bottom:
-            if status[i][j+1] < min_val:
-                min_val = status[i][j+1]
-                min_xy = (i, j+1)
-        path.insert(0, min_xy)
     
-    waypoints = find_waypoints(path)
-    print(waypoints)
-    return waypoints
+    
+    print(status)
+    paths = []
+    paths.append([end])
+    backtostart = False
+    while not backtostart:
+        new_paths = []
+        while paths:
+            path = paths.pop()
+            i, j = path[-1]
+            if status[i][j] == 1:
+                backtostart = True
+                paths.append(path)
+                break
+            if len(path) == 1:
+                i, j = path[-1]
+                currentstatus = status[i][j]
+                left = (i-1) >= 0 and status[i-1][j] != -1 and visited[i-1][j] == 1
+                right = (i+1) < len(grid) and status[i+1][j] != -1 and visited[i+1][j] == 1
+                top  = (j-1) >= 0 and status[i][j-1] != -1 and visited[i][j-1] == 1
+                bottom = (j+1) < len(grid[0]) and status[i][j+1] != -1 and visited[i][j+1] == 1
+                if left:
+                    if status[i-1][j] < currentstatus:
+                        copy = path[:]
+                        copy.append((i-1, j))
+                        new_paths.append(copy)
+                if right:
+                    if status[i+1][j] < currentstatus:
+                        copy = path[:]
+                        copy.append((i+1, j))
+                        new_paths.append(copy)
+                if top:
+                    if status[i][j-1] < currentstatus:
+                        copy = path[:]
+                        copy.append((i, j-1))
+                        new_paths.append(copy)
+                if bottom:
+                    if status[i][j+1] < currentstatus:
+                        copy = path[:]
+                        copy.append((i, j+1))
+                        new_paths.append(copy)
+            else:
+                currentstatus = status[i][j]
+                this_i, this_j = path[-1]
+                last_i, last_j = path[-2]
+                continue_i = this_i + (this_i - last_i)
+                continue_j = this_j + (this_j - last_j)
+                if continue_i>=0 and continue_i<len(grid) and continue_j>=0 and continue_j<len(grid[0]) and status[continue_i][continue_j] < currentstatus and visited[continue_i][continue_j]:
+                    copy = path[:]
+                    copy.append((continue_i, continue_j))
+                    new_paths.append(copy)
+                else:
+                    left = (i-1) >= 0 and status[i-1][j] != -1 and visited[i-1][j] == 1
+                    right = (i+1) < len(grid) and status[i+1][j] != -1 and visited[i+1][j] == 1
+                    top  = (j-1) >= 0 and status[i][j-1] != -1 and visited[i][j-1] == 1
+                    bottom = (j+1) < len(grid[0]) and status[i][j+1] != -1 and visited[i][j+1] == 1
+                    if left:
+                        if status[i-1][j] < currentstatus:
+                            copy = path[:]
+                            copy.append((i-1, j))
+                            new_paths.append(copy)
+                    if right:
+                        if status[i+1][j] < currentstatus:
+                            copy = path[:]
+                            copy.append((i+1, j))
+                            new_paths.append(copy)
+                    if top:
+                        if status[i][j-1] < currentstatus:
+                            copy = path[:]
+                            copy.append((i, j-1))
+                            new_paths.append(copy)
+                    if bottom:
+                        if status[i][j+1] < currentstatus:
+                            copy = path[:]
+                            copy.append((i, j+1))
+                            new_paths.append(copy)
+        if not backtostart:
+            paths = new_paths
+                    
+    waypoints = [find_waypoints(p) for p in paths]
+    pointsnums = np.array([len(p) for p in waypoints])
+    minpointsnum = np.min(pointsnums)
+    minindex = np.nonzero(pointsnums == minpointsnum)
+    return waypoints[minindex[0][0]]
 
 def find_waypoints(path):
     waypoints = []
