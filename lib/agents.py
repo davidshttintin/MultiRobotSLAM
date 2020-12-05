@@ -39,6 +39,7 @@ class Controller(object):
     # param: current and target position
     # return: velocity for left and right motor
     def p_control(self, current, target):
+
         e = np.array(target) - np.array(current)
         print(target, current, e)
         K1 = 1
@@ -54,7 +55,7 @@ class Controller(object):
         return np.array([vr, vl])
 
     def compute_vel(self, pos, theta, target):
-        return self.p_control([0, 0], self.world2robot(pos[0], pos[1], theta, target))
+        return self.p_control([400, 400], self.world2robot(pos[0], pos[1], theta, target))
         
 
 class Pioneer(object):

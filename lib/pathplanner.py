@@ -136,7 +136,7 @@ def lee_planning_path(grid, start, end):
         for position in path:
             width = 3
             px, py = position[0], position[1]
-            area = gird[px-width:px+width+1, py-width:py+width+1]
+            area = grid[px-width:px+width+1, py-width:py+width+1]
             unknown = np.sum(area<127)/(2*width+1)**2
             if unknown > 0.5:
                 total += 1                
