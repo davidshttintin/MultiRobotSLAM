@@ -40,6 +40,7 @@ class Controller(object):
     # return: velocity for left and right motor
     def p_control(self, current, target):
         e = np.array(target) - np.array(current)
+        print(target, current, e)
         K1 = 1
         K2 = 1
         K = np.array([[K1, 0], [0, K2]])

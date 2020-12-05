@@ -152,9 +152,9 @@ def find_waypoints(path):
             waypoints.append(pt)
     return waypoints
 
-a = np.array([[10, 20, 30, 0, 100],
-              [0, 10, 40, 50, 10],
-              [0, 20, 50, 0, 100],
-              [10, 50, 60, 70, 80]])
-print(a)
-lee_planning_path(a, (0, 0), (3, 4))
+# a = np.array([[10, 20, 30, 0, 100],
+#               [0, 10, 40, 50, 10],
+#               [0, 20, 50, 0, 100],
+#               [10, 50, 60, 70, 80]])
+# print(a)
+# lee_planning_path(a, (0, 0), (3, 4))
