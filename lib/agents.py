@@ -18,6 +18,14 @@ import skimage.io as skio
 from lib.frontier import *
 from lib.pathplanner import lee_planning_path
 
+
+def color(grid, point, c):
+    for i in range(point[0]-15, point[0]+15):
+        grid[i][point[1]] = c
+    for i in range(point[1]-15, point[1]+15):
+        grid[point[0]][i] = c
+    return grid
+
 class Controller(object):
     def __init__(self):
         self._ring_buff_capacity = 3
@@ -41,7 +49,6 @@ class Controller(object):
     def p_control(self, current, target):
 
         e = np.array(target) - np.array(current)
-        print(target, current, e)
         K1 = 1
         K2 = 1
         K = np.array([[K1, 0], [0, K2]])
@@ -52,10 +59,12 @@ class Controller(object):
         ratio = float(right/left)
         vl = min(1, left)
         vr = ratio * vl
-        return np.array([vr, vl])
+        print(target, current, e, vl, vr)
+        return np.array([vl, vr])
 
     def compute_vel(self, pos, theta, target):
-        return self.p_control([400, 400], self.world2robot(pos[0], pos[1], theta, target))
+        current_position = [0 + pos[0], 0 + pos[1]] 
+        return self.p_control(current_position, self.world2robot(pos[0], pos[1], theta, target))
         
 
 class Pioneer(object):
@@ -63,6 +72,7 @@ class Pioneer(object):
         
         self.env = env
         self.controller = controller
+        self.display = None
         
         # Lidar
         self.lidar_names   = ['SICK_TiM310_sensor1', 'SICK_TiM310_sensor2']
@@ -187,6 +197,11 @@ class Pioneer(object):
                 self.env.set_target_velocity(self.motor_handles[i], velocities[i])
 
     def drive_to_target(self):
+        array = np.frombuffer(self.display.bytearray, dtype=np.uint8)
+        gray  = np.reshape(array, [settings.image_size, settings.image_size])
+        gray = color(gray, self.pos, 100)
+        gray = color(gray, self.current_target, 100)
+        skio.imsave("driving.jpg", gray)
         vels = self.controller.compute_vel(self.pos, self.theta, self.current_target)
         self.change_velocity(vels)
 
@@ -195,6 +210,7 @@ class Display(object):
         self.bytearray = bytearray(settings.image_size*settings.image_size)
         self.grid = np.array([])
         self.agent = agent
+        self.agent.display = self
         self.im = None
         self.colormap = cv2.COLORMAP_OCEAN
         self.visited = np.ones([settings.image_size, settings.image_size, 3])
@@ -249,7 +265,7 @@ class Display(object):
         array = np.frombuffer(self.bytearray, dtype=np.uint8)
         gray  = np.reshape(array, [settings.image_size, settings.image_size])
         #print([x for x in array if x!= 127])
-        skio.imsave("a.jpg", gray)
+        # skio.imsave("a.jpg", gray)
         
         # planning part
         if self.step % settings.steps_lee == 0 and len(self.centroids) != 0:
@@ -262,6 +278,12 @@ class Display(object):
             obst = grow_obstacle(obst)
             waypoints = lee_planning_path(obst, (self.agent.pos[0], self.agent.pos[1]), self.centroids[0])
             print("end path planning")
+
+            """debug"""
+            if len(waypoints) < 1:
+                colored = color(obst, (self.agent.pos[0], self.agent.pos[1]), 100)
+                colored = color(colored, self.centroids[0], 100)
+                skio.imsave("error.jpg", colored)
             self.agent.current_target = waypoints[0]
 
     def draw_closest(self, image):
