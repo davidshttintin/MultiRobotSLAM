@@ -5,7 +5,7 @@
 
 Run the demo in a room environment using Pioneer robot:
 
-    python run.py 
+    python3 run.py 
 
 Credits:
 

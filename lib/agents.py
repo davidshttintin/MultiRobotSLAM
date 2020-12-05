@@ -12,15 +12,55 @@ ros_path = '/opt/ros/kinetic/lib/python2.7/dist-packages'
 if ros_path in sys.path:
     sys.path.remove(ros_path)
 import cv2
+sys.path.append('/opt/ros/kinetic/lib/python2.7/dist-packages')
 
 import skimage.io as skio
-from lib.frontier import frontier_cluster
+from lib.frontier import *
+from lib.pathplanner import lee_planning_path
 
-sys.path.append('/opt/ros/kinetic/lib/python2.7/dist-packages')
+class Controller(object):
+    def __init__(self):
+        self._ring_buff_capacity = 3
+        self._ring_buff = deque([], self._ring_buff_capacity)
+    
+    def world2robot(self, x, y, theta, point):
+        pt = np.array([point[0], point[1], 1])
+        G = np.zeros((3, 3))
+        G[0][0] = np.cos(theta)
+        G[0][1] = -np.sin(theta)
+        G[1][0] = np.sin(theta)
+        G[1][1] = np.cos(theta)
+        G[0][2] = x
+        G[1][2] = y
+        G[2][2] = 1
+        pt2 = np.matmul(np.linalg.inv(G), pt)
+        return np.array([pt[0], pt[1]])
+    
+    # param: current and target position
+    # return: velocity for left and right motor
+    def p_control(self, current, target):
+        e = np.array(target) - np.array(current)
+        K1 = 1
+        K2 = 1
+        K = np.array([[K1, 0], [0, K2]])
+        v = np.matmul(K, e)
+        theta_dot = np.arctan(v[1]/v[0])
+        left = 0.5 * (v[0] + theta_dot)
+        right = 0.5 * (v[0] - theta_dot)
+        ratio = float(right/left)
+        vl = min(1, left)
+        vr = ratio * vl
+        return np.array([vr, vl])
+
+    def compute_vel(self, pos, theta, target):
+        return self.p_control([0, 0], self.world2robot(pos[0], pos[1], theta, target))
+        
+
 class Pioneer(object):
-    def __init__(self, env):
+    def __init__(self, env, controller):
         
         self.env = env
+        self.controller = controller
         
         # Lidar
         self.lidar_names   = ['SICK_TiM310_sensor1', 'SICK_TiM310_sensor2']
@@ -49,6 +89,8 @@ class Pioneer(object):
         self.wall_r = False
 
         self.change_velocity([0, 0])
+        
+        self.current_target = ()
 
 
     def find_closest(self):
@@ -141,15 +183,21 @@ class Pioneer(object):
         else:
             for i in range(2):
                 self.env.set_target_velocity(self.motor_handles[i], velocities[i])
-        
+
+    def drive_to_target(self):
+        vels = self.controller.compute_vel(self.pos, self.theta, self.current_target)
+        self.change_velocity(vels)
 
 class Display(object):
     def __init__(self, agent, wall):
         self.bytearray = bytearray(settings.image_size*settings.image_size)
+        self.grid = np.array([])
         self.agent = agent
         self.im = None
         self.colormap = cv2.COLORMAP_OCEAN
         self.visited = np.ones([settings.image_size, settings.image_size, 3])
+
+        self.centroids = []
 
         self.wall_disp = wall
         # Agent parameters
@@ -163,7 +211,8 @@ class Display(object):
         print("before")
         cv2.namedWindow('Simultaneous Localization and Mapping (SLAM)', cv2.WINDOW_NORMAL)
         print("after")
-        # cv2.resizeWindow('Simultaneous Localization and Mapping (SLAM)', 850, 850)
+        cv2.resizeWindow('Simultaneous Localization and Mapping (SLAM)', 700, 700)
+
     def update(self):
         """
         Updates the current display based on current information of the agent
@@ -171,6 +220,10 @@ class Display(object):
 
         if self.step % settings.steps_slam == 0:
             self.agent.slam(self.bytearray)
+        
+        array = np.frombuffer(self.bytearray, dtype=np.uint8)
+        self.grid = np.reshape(array, [settings.image_size, settings.image_size])
+        
 
         self.im = self.to_image()
         self.draw_agent(self.im)      
@@ -178,9 +231,10 @@ class Display(object):
         # self.im = cv2.cvtColor(cv2.Canny(self.im, 100,150), cv2.COLOR_GRAY2RGB)
         self.draw_closest(self.im)
         self.draw_trajectory(self.im)
-        self.draw_frontier_centroids()
-        self.im = cv2.flip(self.im, 0)
+        self.draw_frontier_centroids(self.im)
+        
 
+        self.im = cv2.flip(self.im, 0)
         self.draw_elements(self.im)        
         self.draw_speed(self.im)
         
@@ -194,7 +248,19 @@ class Display(object):
         gray  = np.reshape(array, [settings.image_size, settings.image_size])
         #print([x for x in array if x!= 127])
         skio.imsave("a.jpg", gray)
-
+        
+        # planning part
+        if self.step % settings.steps_lee == 0 and len(self.centroids) != 0:
+            print("start path planning")
+            print("agent pos:", self.agent.pos)
+            print("target:", self.centroids[0])
+            array = np.frombuffer(self.bytearray, dtype=np.uint8)
+            grid = np.reshape(array, [settings.image_size, settings.image_size])
+            obst = preprocess_grid(grid)
+            obst = grow_obstacle(obst)
+            waypoints = lee_planning_path(obst, (self.agent.pos[0], self.agent.pos[1]), self.centroids[0])
+            print("end path planning")
+            self.agent.current_target = waypoints[0]
 
     def draw_closest(self, image):
         """
@@ -283,15 +349,13 @@ class Display(object):
         for i in range(100):
             im[offsetx:offsetx+20,offsety:offsety+len(data1), 0] = data
 
-    def draw_frontier_centroids(self):
-        array = np.frombuffer(self.bytearray, dtype=np.uint8)
-        grid  = np.reshape(array, [settings.image_size, settings.image_size])
-        cx, cy, clusters = frontier_cluster(grid)
+    def draw_frontier_centroids(self, img):
+        cx, cy, clusters = frontier_cluster(self.grid)
         if not cx.size or not cy.size or not clusters.size:
             return
         # draw frontier pts        
         for i in range(len(cx)):
-            self.im = cv2.drawMarker(self.im, (int(cy[i]), int(cx[i])), (0,0,255), markerSize=5)
+            cv2.drawMarker(img, (int(cy[i]), int(cx[i])), (0,0,255), markerSize=5)
         # draw centroids        
         for gid in range(1, max(clusters)+1):
             print(gid)
@@ -302,7 +366,8 @@ class Display(object):
                 continue
             xcenter = np.mean(cx[mask])
             ycenter = np.mean(cy[mask])
-            self.im = cv2.drawMarker(self.im, (int(ycenter), int(xcenter)), (0,255,255), markerSize=25, markerType=cv2.MARKER_STAR)
+            self.centroids.append((int(xcenter), int(ycenter)))
+            cv2.drawMarker(img, (int(ycenter), int(xcenter)), (0,255,255), markerSize=25, markerType=cv2.MARKER_STAR)
             
 
         
