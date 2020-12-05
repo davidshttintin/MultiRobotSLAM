@@ -2,9 +2,9 @@ import numpy as np
 import time
 
 def lee_planning_path(grid, start, end):
-    status = np.zeros((len(a), len(grid[0])))
-    can_visit = np.ones((len(a), len(grid[0])))
-    visited = np.zeros((len(a), len(grid[0])))
+    status = np.zeros((len(grid), len(grid[0])))
+    can_visit = np.ones((len(grid), len(grid[0])))
+    visited = np.zeros((len(grid), len(grid[0])))
 
     reached = False
     status[grid < 10] = -1 #set obstacles to -1
@@ -13,7 +13,10 @@ def lee_planning_path(grid, start, end):
     can_visit[start] = 0
     current_step = 1
     visited[start] = 1
+    loop_limit = 1000
+    loop_count = 0
     while not reached:
+        loop_count += 1
         current_step_map = status == current_step
         rollup = np.roll(current_step_map, -1, axis = 0)
         rollup[-1] = False
@@ -43,7 +46,9 @@ def lee_planning_path(grid, start, end):
 
         coordinates = np.transpose(np.nonzero(this_step))
         reached = list(end) in coordinates.tolist()
-        
+        if loop_count >= loop_limit:
+            print("cant be reach in", loop_count, "steps")
+            return []
     
     if status[end[0]][end[1]] == 0:
         print("not accessible")

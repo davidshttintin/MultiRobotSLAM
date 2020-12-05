@@ -4,12 +4,10 @@
 
 from __future__ import print_function
 from lib.env    import VrepEnvironment
-from lib.agents import Pioneer, Display
+from lib.agents import Pioneer, Display, Controller
 import settings, time, argparse
 import matplotlib.pyplot as plt
 import numpy as np
-import rospy
-from nav_msgs.msg import OccupancyGrid
 from io import StringIO
 from pynput.keyboard import Key, Listener
 from lib.frontier import frontier_cluster
@@ -26,14 +24,14 @@ def on_press(event):
     elif event == Key.right:
         if debug:
             print("Right")
-        robot.change_velocity([speed/2, -speed/2])
+        robot.change_velocity([speed/4, -speed/4])
         #robot.change_velocity(1, target='left')
         #robot.change_velocity(-1, target='right')
         print('--------------------------------- Direction turn right')
     elif event == Key.left:
         if debug:
             print("Left")
-        robot.change_velocity([-speed/2, speed/2])
+        robot.change_velocity([-speed/4, speed/4])
         #robot.change_velocity(-1, target='left')
         #robot.change_velocity(1, target='right')
         print('--------------------------------- Direction turn left')
@@ -55,25 +53,23 @@ def loop(robot, display):
     """
     Agent control loop
     """
-    byteArray = display.bytearray
+    #byteArray = display.bytearray
     #print(byteArray)
-    array = np.frombuffer(display.bytearray, dtype=np.uint8)
+    #array = np.frombuffer(display.bytearray, dtype=np.uint8)
+    
     # where = 
     #array[array == 127] = -1
     # array /= (255/100)
     # array[array<0] = -1
-    output = OccupancyGrid()
     #buff = StringIO()
     #array = [int(x/(255/100)) for x in array if x!=127 and x!=-1 and not np.isnan(x)]
-    a = array.reshape((settings.image_size, settings.image_size))
-    output.data = [int(x/2) for x in array.tolist()]
+    #a = array.reshape((settings.image_size, settings.image_size))
     #output.serialize_numpy(buff, np)
     #print(type(output.data[0]))
-    velocity_publisher.publish(output)
+    if robot.current_target:
+        robot.drive_to_target()
     
 if __name__ == "__main__":
-    rospy.init_node('runner', anonymous=True)
-    velocity_publisher = rospy.Publisher('/map', OccupancyGrid, queue_size=10)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-t', '--test', action='store_true', help='Test in a room environment')
@@ -91,7 +87,8 @@ if __name__ == "__main__":
     environment.connect()    # Connect our program to the simulator
     print(environment.port)
     # Create our robot in the current environment
-    robot   = Pioneer(environment)
+    controller = Controller()
+    robot   = Pioneer(environment, controller)
     display = Display(robot, True)  # Display the information of the robot
 
     print('\nDemonstration of Simultaneous Localization and Mapping using V-REP robot simulation software. \nPress "CTRL+C" to exit.\n')
