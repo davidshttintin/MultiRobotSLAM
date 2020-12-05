@@ -199,8 +199,8 @@ class Pioneer(object):
     def drive_to_target(self):
         array = np.frombuffer(self.display.bytearray, dtype=np.uint8)
         gray  = np.reshape(array, [settings.image_size, settings.image_size])
-        gray = color(gray, self.pos, 100)
-        gray = color(gray, self.current_target, 100)
+        # gray = color(gray, self.pos, 100)
+        # gray = color(gray, self.current_target, 100)
         skio.imsave("driving.jpg", gray)
         vels = self.controller.compute_vel(self.pos, self.theta, self.current_target)
         self.change_velocity(vels)
