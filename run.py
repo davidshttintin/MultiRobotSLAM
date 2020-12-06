@@ -101,15 +101,15 @@ if __name__ == "__main__":
         #environment.step_simulation()
         camera_handle = environment.get_handle('Vision_sensor')
         
-        listener = Listener(on_press=on_press, on_release=on_release)
-        listener.start()
+        # listener = Listener(on_press=on_press, on_release=on_release)
+        # listener.start()
         
         while step < settings.simulation_steps:
+            print()
+            print("step:", step)
             environment.pause_simulation()
             display.update()
-            environment.start_simulation()
-            
-            print("step:", step)            
+            environment.start_simulation()            
             loop(robot, display)
             step += 1
             #if robot.pos[0] < 330:

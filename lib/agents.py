@@ -42,7 +42,6 @@ class Controller(object):
         G[1][2] = y
         G[2][2] = 1
         pt2 = np.matmul(np.linalg.inv(G), pt)
-        print(pt2)
         return np.array([pt[0], pt[1]])
     
     # param: current and target position
@@ -221,9 +220,9 @@ class Pioneer(object):
         gray  = np.reshape(array, [settings.image_size, settings.image_size])
         # gray = color(gray, self.pos, 100)
         # gray = color(gray, self.current_target, 100)
-        skio.imsave("driving.jpg", gray)
+        # skio.imsave("driving.jpg", gray)
         vels = self.controller.compute_vel(self.pos, self.theta, self.current_target)
-        self.change_velocity(vels)
+        # self.change_velocity(vels)
 
 class Display(object):
     def __init__(self, agent, wall):
@@ -247,9 +246,7 @@ class Display(object):
         self.speed_location  = [(60,700), (90,700)]
         self.step = 0
         # Create cv2 window
-        print("before")
         cv2.namedWindow('Simultaneous Localization and Mapping (SLAM)', cv2.WINDOW_NORMAL)
-        print("after")
         cv2.resizeWindow('Simultaneous Localization and Mapping (SLAM)', 700, 700)
 
     def update(self):
@@ -286,8 +283,6 @@ class Display(object):
 
         array = np.frombuffer(self.bytearray, dtype=np.uint8)
         gray  = np.reshape(array, [settings.image_size, settings.image_size])
-        #print([x for x in array if x!= 127])
-        # skio.imsave("a.jpg", gray)
         
         #self.agent.current_target = (450, 400)
         print("pos:", self.agent.pos)
@@ -298,14 +293,16 @@ class Display(object):
             print("***target:", self.centroids[0])
             array = np.frombuffer(self.bytearray, dtype=np.uint8)
             grid = np.reshape(array, [settings.image_size, settings.image_size])
-            obst = preprocess_grid(grid)
+            obst = preprocess_grid(grid, True)
             obst = grow_obstacle(obst)
             waypoints = lee_planning_path(obst, (self.agent.pos[0], self.agent.pos[1]), self.centroids[0])
             print("***end path planning")
             if waypoints:
                 self.agent.current_target = waypoints[0]
+
                 self.waypoints = waypoints
         print("wp in action:", self.agent.current_target)
+        print("all_waypoints:", self.waypoints)
         if self.agent.current_target:
             cv2.drawMarker(self.im, (self.agent.current_target[0], -self.agent.current_target[1]), (0,255,0), markerSize=25, markerType=cv2.MARKER_STAR)
 
@@ -402,10 +399,9 @@ class Display(object):
             return
         # draw frontier pts        
         for i in range(len(cx)):
-            cv2.drawMarker(img, (int(cy[i]), int(cx[i])), (0,0,255), markerSize=5)
+            cv2.drawMarker(img, (int(cy[i]), int(settings.image_size-cx[i])), (0,0,255), markerSize=5)
         # draw centroids        
         for gid in range(1, max(clusters)+1):
-            print(gid)
             ccopy = np.copy(clusters)
             ccopy[ccopy != gid] = 0
             mask = np.nonzero(ccopy)
@@ -414,14 +410,15 @@ class Display(object):
             xcenter = np.mean(cx[mask])
             ycenter = np.mean(cy[mask])
             self.centroids.append((int(xcenter), int(ycenter)))
-            cv2.drawMarker(img, (int(ycenter), int(xcenter)), (0,255,255), markerSize=25, markerType=cv2.MARKER_STAR)
+            cv2.drawMarker(img, (int(ycenter), int(settings.image_size - xcenter)), (0,255,255), markerSize=25, markerType=cv2.MARKER_STAR)
 
     def draw_wps_delayed(self, im, waypoints):
         for i in range(len(waypoints)):
             #cv2.drawMarker(im, (waypoints[i][1], waypoints[i][0]), (0,0,0), markerSize=25, markerType=cv2.MARKER_TRIANGLE_UP)
-            cv2.drawMarker(im, waypoints[i], (0,0,0), markerSize=25, markerType=cv2.MARKER_TRIANGLE_UP)
+            # cv2.drawMarker(im, waypoints[i], (0,0,0), markerSize=25, markerType=cv2.MARKER_TRIANGLE_UP)
+            cv2.drawMarker(im, (waypoints[i][1], settings.image_size - waypoints[i][0]), (0,0,0), markerSize=25, markerType=cv2.MARKER_TRIANGLE_UP)
             if i != 0:
-                cv2.line(im, waypoints[i-1], waypoints[i], (0,0,255), 1)
+                cv2.line(im, (waypoints[i-1][1], settings.image_size - waypoints[i-1][0]), (waypoints[i][1], settings.image_size - waypoints[i][0]), (0,0,255), 1)
             
             
 

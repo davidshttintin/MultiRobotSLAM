@@ -71,7 +71,8 @@ def frontier(gridmap):
     return trued
 
 def frontier_cluster(grid):
-    grid = preprocess_grid(grid, False)
+    grid = preprocess_grid(grid, True)
+    # skio.imsave("frontier_finding.jpg", grid)
     ft = frontier(grid)
     coordinates = np.array(np.nonzero(ft))
     coordinates = np.transpose(coordinates)
