@@ -24,14 +24,14 @@ def on_press(event):
     elif event == Key.right:
         if debug:
             print("Right")
-        robot.change_velocity([speed/4, -speed/4])
+        robot.change_velocity([speed/8, -speed/8])
         #robot.change_velocity(1, target='left')
         #robot.change_velocity(-1, target='right')
         print('--------------------------------- Direction turn right')
     elif event == Key.left:
         if debug:
             print("Left")
-        robot.change_velocity([-speed/4, speed/4])
+        robot.change_velocity([-speed/8, speed/8])
         #robot.change_velocity(-1, target='left')
         #robot.change_velocity(1, target='right')
         print('--------------------------------- Direction turn left')
@@ -105,9 +105,9 @@ if __name__ == "__main__":
         listener.start()
         
         while step < settings.simulation_steps:
-            #environment.pause_simulation()
+            environment.pause_simulation()
             display.update()
-            #environment.start_simulation()
+            environment.start_simulation()
             
             print("step:", step)            
             loop(robot, display)

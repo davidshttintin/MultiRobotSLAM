@@ -53,9 +53,6 @@ def lee_planning_path(grid, start, end):
     if status[end[0]][end[1]] == 0:
         print("not accessible")
         return [] #end is not accessible
-    
-    
-    print(status)
     paths = []
     paths.append([end])
     backtostart = False
@@ -132,12 +129,38 @@ def lee_planning_path(grid, start, end):
                             new_paths.append(copy)
         if not backtostart:
             paths = new_paths
-                    
+
+    """Calculate number of steps in unkonwn area for a given path.""" 
+    def calculate_unknown(path):
+        total = 0
+        for position in path:
+            width = 3
+            px, py = position[0], position[1]
+            area = grid[px-width:px+width+1, py-width:py+width+1]
+            unknown = np.sum(area<127)/(2*width+1)**2
+            if unknown > 0.5:
+                total += 1                
+        return total
+    
+    
+    numStepsInUnknown = [calculate_unknown(p) for p in paths]
+    
     waypoints = [find_waypoints(p) for p in paths]
     pointsnums = np.array([len(p) for p in waypoints])
-    minpointsnum = np.min(pointsnums)
-    minindex = np.nonzero(pointsnums == minpointsnum)
-    return waypoints[minindex[0][0]]
+    
+    minunknown = np.min(numStepsInUnknown)
+    minunknownindex = np.nonzero(numStepsInUnknown == minunknown)
+    
+    if len(minunknownindex[0]) == 1:
+        """if exist one path with minimum unknown steps, take the path"""
+        return waypoints[minunknownindex[0][0]]
+    else:
+        """otherwise choose a path with least turns among the paths with least unknown"""
+        left_waypoints = [waypoints[i] for i in minunknownindex[0]]
+        left_pointsnums = np.array([len(p) for p in left_waypoints])
+        min_points = np.min(left_pointsnums)
+        min_points_index = np.nonzero(left_pointsnums == min_points)
+        return waypoints[min_points_index[0][0]]
 
 def find_waypoints(path):
     waypoints = []
@@ -152,9 +175,9 @@ def find_waypoints(path):
             waypoints.append(pt)
     return waypoints
 
-a = np.array([[10, 20, 30, 0, 100],
-              [0, 10, 40, 50, 10],
-              [0, 20, 50, 0, 100],
-              [10, 50, 60, 70, 80]])
-print(a)
-lee_planning_path(a, (0, 0), (3, 4))
+# a = np.array([[10, 20, 30, 0, 100],
+#               [0, 10, 40, 50, 10],
+#               [0, 20, 50, 0, 100],
+#               [10, 50, 60, 70, 80]])
+# print(a)
+# lee_planning_path(a, (0, 0), (3, 4))
