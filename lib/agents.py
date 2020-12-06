@@ -34,6 +34,7 @@ class Controller(object):
         G[1][2] = y
         G[2][2] = 1
         pt2 = np.matmul(np.linalg.inv(G), pt)
+        print(pt2)
         return np.array([pt[0], pt[1]])
     
     # param: current and target position
@@ -45,15 +46,36 @@ class Controller(object):
         K = np.array([[K1, 0], [0, K2]])
         v = np.matmul(K, e)
         theta_dot = np.arctan(v[1]/v[0])
-        left = 0.5 * (v[0] + theta_dot)
-        right = 0.5 * (v[0] - theta_dot)
+        r_dot = np.sqrt(v[0] ** 2 + v[1] ** 2)
+        left = 0.5 * (r_dot + theta_dot)
+        right = 0.5 * (r_dot - theta_dot)
         ratio = float(right/left)
         vl = min(1, left)
         vr = ratio * vl
         return np.array([vr, vl])
+    
+    def goto_goal_control(self, phi_d, phi, diff):
+        K = 2
+        K_diff = 0.04
+        e = phi_d - phi
+        omega = K*e
+        v = max(4, 10*K_diff*diff)
+        L = 10
+        vl = v - omega*L/2
+        vr = v + omega*L/2
+        return [vl/8, vr/8]
 
     def compute_vel(self, pos, theta, target):
-        return self.p_control([0, 0], self.world2robot(pos[0], pos[1], theta, target))
+        denom = 0.001
+        nume = target[1] - pos[1]
+        if target[0] - pos[0]:
+            denom = target[0] - pos[0]
+        phi_d = np.arctan2(denom, nume)
+        diff = np.sqrt(denom**2 + nume**2)
+        print("theta:", theta/180*np.pi)
+        print("phi_d:", phi_d)
+        print("v:", 10*0.05*diff)
+        return self.goto_goal_control(phi_d, theta/180*np.pi, diff)
         
 
 class Pioneer(object):
@@ -198,6 +220,7 @@ class Display(object):
         self.visited = np.ones([settings.image_size, settings.image_size, 3])
 
         self.centroids = []
+        self.waypoints = []
 
         self.wall_disp = wall
         # Agent parameters
@@ -232,6 +255,7 @@ class Display(object):
         self.draw_closest(self.im)
         self.draw_trajectory(self.im)
         self.draw_frontier_centroids(self.im)
+        self.draw_wps_delayed(self.im, self.waypoints)
         
 
         self.im = cv2.flip(self.im, 0)
@@ -249,18 +273,25 @@ class Display(object):
         #print([x for x in array if x!= 127])
         skio.imsave("a.jpg", gray)
         
+        #self.agent.current_target = (450, 400)
+        print("pos:", self.agent.pos)
         # planning part
         if self.step % settings.steps_lee == 0 and len(self.centroids) != 0:
-            print("start path planning")
-            print("agent pos:", self.agent.pos)
-            print("target:", self.centroids[0])
+            print("***start path planning")
+            print("***agent pos:", self.agent.pos)
+            print("***target:", self.centroids[0])
             array = np.frombuffer(self.bytearray, dtype=np.uint8)
             grid = np.reshape(array, [settings.image_size, settings.image_size])
             obst = preprocess_grid(grid)
             obst = grow_obstacle(obst)
             waypoints = lee_planning_path(obst, (self.agent.pos[0], self.agent.pos[1]), self.centroids[0])
-            print("end path planning")
-            self.agent.current_target = waypoints[0]
+            print("***end path planning")
+            if waypoints:
+                self.agent.current_target = waypoints[0]
+                self.waypoints = waypoints
+        print("wp in action:", self.agent.current_target)
+        if self.agent.current_target:
+            cv2.drawMarker(self.im, (self.agent.current_target[0], -self.agent.current_target[1]), (0,255,0), markerSize=25, markerType=cv2.MARKER_STAR)
 
     def draw_closest(self, image):
         """
@@ -368,6 +399,13 @@ class Display(object):
             ycenter = np.mean(cy[mask])
             self.centroids.append((int(xcenter), int(ycenter)))
             cv2.drawMarker(img, (int(ycenter), int(xcenter)), (0,255,255), markerSize=25, markerType=cv2.MARKER_STAR)
+
+    def draw_wps_delayed(self, im, waypoints):
+        for i in range(len(waypoints)):
+            cv2.drawMarker(im, (waypoints[i][1], waypoints[i][0]), (0,0,0), markerSize=25, markerType=cv2.MARKER_SQUARE)
+            if i != 0:
+                cv2.line(im, (waypoints[i-1][1], waypoints[i-1][0]), (waypoints[i][1], waypoints[i][0]), (0,0,255), 1)
+            
             
 
         

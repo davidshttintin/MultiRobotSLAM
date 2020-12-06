@@ -15,6 +15,6 @@ simulation_steps = 5000
 image_size = 800
 map_size   = 80
 steps_slam = 1 # Perform SLAM every n steps
-steps_lee = 10 # Perform path planning every n steps
+steps_lee = 20 # Perform path planning every n steps
 cluster_threshold = 5 # threshold t for scipy.cluster.hierarchy.fclusterdata
 cluster_filter = 5 # clusters with pixels less than this number will be deleted
