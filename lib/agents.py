@@ -75,11 +75,6 @@ class Controller(object):
         return [vl/8, vr/8]
 
     def compute_vel(self, pos, theta, target):
-<<<<<<< HEAD
-        current_position = [0 + pos[0], 0 + pos[1]] 
-        # return self.p_control(current_position, self.world2robot(pos[0], pos[1], theta, target))
-        return [0.5,1]
-=======
         denom = 0.001
         nume = target[1] - pos[1]
         if target[0] - pos[0]:
@@ -90,7 +85,6 @@ class Controller(object):
         print("phi_d:", phi_d)
         print("v:", 10*0.05*diff)
         return self.goto_goal_control(phi_d, theta/180*np.pi, diff)
->>>>>>> 5d2eeabb8aabf803063f01fd3c66c209ddefabd4
         
 
 class Pioneer(object):
