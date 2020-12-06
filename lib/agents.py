@@ -418,9 +418,10 @@ class Display(object):
 
     def draw_wps_delayed(self, im, waypoints):
         for i in range(len(waypoints)):
-            cv2.drawMarker(im, (waypoints[i][1], waypoints[i][0]), (0,0,0), markerSize=25, markerType=cv2.MARKER_SQUARE)
+            #cv2.drawMarker(im, (waypoints[i][1], waypoints[i][0]), (0,0,0), markerSize=25, markerType=cv2.MARKER_TRIANGLE_UP)
+            cv2.drawMarker(im, waypoints[i], (0,0,0), markerSize=25, markerType=cv2.MARKER_TRIANGLE_UP)
             if i != 0:
-                cv2.line(im, (waypoints[i-1][1], waypoints[i-1][0]), (waypoints[i][1], waypoints[i][0]), (0,0,255), 1)
+                cv2.line(im, waypoints[i-1], waypoints[i], (0,0,255), 1)
             
             
 
