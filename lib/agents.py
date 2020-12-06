@@ -77,7 +77,7 @@ class Controller(object):
         denom = 0.001
         nume = target[1] - pos[1]
         if target[0] - pos[0]:
-            denom = target[0] - pos[0]
+            denom = -(target[0] - pos[0])
         phi_d = np.arctan2(denom, nume)
         diff = np.sqrt(denom**2 + nume**2)
         print("theta:", theta/180*np.pi)
