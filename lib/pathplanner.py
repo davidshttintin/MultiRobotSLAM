@@ -1,7 +1,17 @@
 import numpy as np
 import time
+import skimage.io as skio
+
+
+def color(grid, point, c):
+    for i in range(point[0]-15, point[0]+15):
+        grid[i][point[1]] = c
+    for i in range(point[1]-15, point[1]+15):
+        grid[point[0]][i] = c
+    return grid
 
 def lee_planning_path(grid, start, end):
+    skio.imsave("lee.jpg", grid)
     status = np.zeros((len(grid), len(grid[0])))
     can_visit = np.ones((len(grid), len(grid[0])))
     visited = np.zeros((len(grid), len(grid[0])))
@@ -145,7 +155,7 @@ def lee_planning_path(grid, start, end):
     
     numStepsInUnknown = [calculate_unknown(p) for p in paths]
     
-    waypoints = [find_waypoints(p) for p in paths]
+    waypoints = [find_waypoints(p[::-1]) for p in paths]
     pointsnums = np.array([len(p) for p in waypoints])
     
     minunknown = np.min(numStepsInUnknown)
