@@ -64,7 +64,8 @@ class Controller(object):
 
     def compute_vel(self, pos, theta, target):
         current_position = [0 + pos[0], 0 + pos[1]] 
-        return self.p_control(current_position, self.world2robot(pos[0], pos[1], theta, target))
+        # return self.p_control(current_position, self.world2robot(pos[0], pos[1], theta, target))
+        return [0.5,1]
         
 
 class Pioneer(object):
