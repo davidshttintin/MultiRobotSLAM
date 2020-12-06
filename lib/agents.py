@@ -222,7 +222,7 @@ class Pioneer(object):
         # gray = color(gray, self.current_target, 100)
         # skio.imsave("driving.jpg", gray)
         vels = self.controller.compute_vel(self.pos, self.theta, self.current_target)
-        # self.change_velocity(vels)
+        self.change_velocity(vels)
 
 class Display(object):
     def __init__(self, agent, wall):
